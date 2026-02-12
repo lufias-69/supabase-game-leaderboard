@@ -51,7 +51,13 @@ async function showGame() {
 }
 
 async function fetchHighScore() {
-    const { data } = await supabaseClient.from('scores').select('high_score').eq('user_id', user.id).single();
+    if (!user) return;
+    const { data, error } = await supabaseClient
+        .from('scores')
+        .select('high_score')
+        .eq('user_id', user.id)
+        .maybeSingle();
+    
     if (data) {
         highScore = data.high_score;
         highScoreSpan.innerText = highScore;
@@ -59,11 +65,16 @@ async function fetchHighScore() {
 }
 
 async function fetchLeaderboard() {
-    const { data } = await supabaseClient.from('scores').select('email, high_score').order('high_score', { ascending: false }).limit(10);
+    const { data, error } = await supabaseClient
+        .from('scores')
+        .select('email, high_score')
+        .order('high_score', { ascending: false })
+        .limit(10);
+    
     if (data) {
         leaderboardDiv.innerHTML = data.map(s => `
             <div class="flex justify-between p-2 bg-slate-700 rounded">
-                <span>${s.email}</span>
+                <span class="truncate mr-2">${s.email}</span>
                 <span class="font-bold text-yellow-500">${s.high_score}</span>
             </div>
         `).join('');
@@ -107,12 +118,12 @@ function draw() {
     // Pipes
     if (frame % 120 === 0) {
         let pos = Math.random() * (canvas.height - PIPE_GAP - 100) + 50;
-        pipes.push({ x: canvas.width, top: pos, bottom: pos + PIPE_GAP });
+        pipes.push({ x: canvas.width, top: pos, bottom: pos + PIPE_GAP, passed: false });
     }
 
     ctx.fillStyle = '#22c55e';
     pipes.forEach((p, i) => {
-        p.x -= 1.8; // Slower pipes
+        p.x -= 1.8;
         ctx.fillRect(p.x, 0, 40, p.top);
         ctx.fillRect(p.x, p.bottom, 40, canvas.height);
 
@@ -142,14 +153,31 @@ function draw() {
 
 async function gameOver() {
     gameState = 'menu';
+    console.log(`Game Over. Score: ${score}, Current High Score: ${highScore}`);
+    
     if (score > highScore) {
-        await supabaseClient.from('scores').upsert({ user_id: user.id, email: user.email, high_score: score });
-        fetchHighScore();
-        fetchLeaderboard();
+        console.log("New High Score! Updating database...");
+        const { error } = await supabaseClient
+            .from('scores')
+            .upsert({ 
+                user_id: user.id, 
+                email: user.email, 
+                high_score: score,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'user_id' });
+            
+        if (error) {
+            console.error("Error updating score:", error.message);
+        } else {
+            console.log("Score updated successfully.");
+            await fetchHighScore();
+            await fetchLeaderboard();
+        }
     }
+    
     alert(`Game Over! Score: ${score}`);
     resetGame();
-    draw(); // Draw menu
+    draw(); 
 }
 
 function resetGame() {
@@ -159,7 +187,6 @@ function resetGame() {
     frame = 0;
 }
 
-// Initial draw
 draw();
 
 // Universal Input
