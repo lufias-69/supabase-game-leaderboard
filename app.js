@@ -1,37 +1,50 @@
 const SUPABASE_URL = 'https://vljhqfhfhcdfwyxcllge.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Eu2ugJjtiwsbV8yiyU9qQg_C3KR9djo';
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const authSection = document.getElementById('auth-section');
 const gameSection = document.getElementById('game-section');
 const emailInput = document.getElementById('email');
 const passInput = document.getElementById('password');
 const loginBtn = document.getElementById('login-btn');
+const signupBtn = document.createElement('button'); // Dynamically add signup button
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const startBtn = document.getElementById('start-btn');
 const leaderboardDiv = document.getElementById('leaderboard');
 const highScoreSpan = document.getElementById('high-score');
 
+// UI Enhancements for Signup
+signupBtn.innerText = 'Sign Up';
+signupBtn.className = 'w-full bg-slate-600 hover:bg-slate-700 p-2 mt-2 rounded font-bold';
+loginBtn.parentNode.appendChild(signupBtn);
+
 let user = null;
 let highScore = 0;
 let gameState = 'menu';
 let score = 0;
 
-// Auth Logic
+// Auth Logic - Login
 loginBtn.onclick = async () => {
     const email = emailInput.value;
     const password = passInput.value;
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     
-    if (error) {
-        const { data: upData, error: upError } = await supabase.auth.signUp({ email, password });
-        if (upError) return alert(upError.message);
-        user = upData.user;
-    } else {
-        user = data.user;
-    }
+    if (error) return alert(error.message);
+    user = data.user;
     showGame();
+};
+
+// Auth Logic - Signup
+signupBtn.onclick = async () => {
+    const email = emailInput.value;
+    const password = passInput.value;
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+    
+    if (error) return alert(error.message);
+    alert('Signup successful! You can now login or play (if auto-confirm is on).');
+    user = data.user;
+    if (user) showGame();
 };
 
 async function showGame() {
@@ -42,7 +55,7 @@ async function showGame() {
 }
 
 async function fetchHighScore() {
-    const { data } = await supabase.from('scores').select('high_score').eq('user_id', user.id).single();
+    const { data } = await supabaseClient.from('scores').select('high_score').eq('user_id', user.id).single();
     if (data) {
         highScore = data.high_score;
         highScoreSpan.innerText = highScore;
@@ -50,13 +63,15 @@ async function fetchHighScore() {
 }
 
 async function fetchLeaderboard() {
-    const { data } = await supabase.from('scores').select('email, high_score').order('high_score', { ascending: false }).limit(10);
-    leaderboardDiv.innerHTML = data.map(s => `
-        <div class="flex justify-between p-2 bg-slate-700 rounded">
-            <span>${s.email}</span>
-            <span class="font-bold text-yellow-500">${s.high_score}</span>
-        </div>
-    `).join('');
+    const { data } = await supabaseClient.from('scores').select('email, high_score').order('high_score', { ascending: false }).limit(10);
+    if (data) {
+        leaderboardDiv.innerHTML = data.map(s => `
+            <div class="flex justify-between p-2 bg-slate-700 rounded">
+                <span>${s.email}</span>
+                <span class="font-bold text-yellow-500">${s.high_score}</span>
+            </div>
+        `).join('');
+    }
 }
 
 // Simple Game Logic (Flappy Clone)
@@ -65,6 +80,8 @@ let pipes = [];
 let frame = 0;
 
 function draw() {
+    if (gameState !== 'playing') return;
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     // Bird
@@ -100,16 +117,14 @@ function draw() {
     ctx.font = '20px Arial';
     ctx.fillText(`Score: ${score}`, 10, 25);
 
-    if (gameState === 'playing') {
-        frame++;
-        requestAnimationFrame(draw);
-    }
+    frame++;
+    requestAnimationFrame(draw);
 }
 
 async function gameOver() {
     gameState = 'menu';
     if (score > highScore) {
-        await supabase.from('scores').upsert({ user_id: user.id, email: user.email, high_score: score });
+        await supabaseClient.from('scores').upsert({ user_id: user.id, email: user.email, high_score: score });
         fetchHighScore();
         fetchLeaderboard();
     }
