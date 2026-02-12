@@ -7,10 +7,9 @@ const gameSection = document.getElementById('game-section');
 const emailInput = document.getElementById('email');
 const passInput = document.getElementById('password');
 const loginBtn = document.getElementById('login-btn');
-const signupBtn = document.createElement('button'); // Dynamically add signup button
+const signupBtn = document.createElement('button');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const startBtn = document.getElementById('start-btn');
 const leaderboardDiv = document.getElementById('leaderboard');
 const highScoreSpan = document.getElementById('high-score');
 
@@ -24,25 +23,22 @@ let highScore = 0;
 let gameState = 'menu';
 let score = 0;
 
-// Auth Logic - Login
+// Auth Logic
 loginBtn.onclick = async () => {
     const email = emailInput.value;
     const password = passInput.value;
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    
     if (error) return alert(error.message);
     user = data.user;
     showGame();
 };
 
-// Auth Logic - Signup
 signupBtn.onclick = async () => {
     const email = emailInput.value;
     const password = passInput.value;
     const { data, error } = await supabaseClient.auth.signUp({ email, password });
-    
     if (error) return alert(error.message);
-    alert('Signup successful! You can now login or play (if auto-confirm is on).');
+    alert('Signup successful!');
     user = data.user;
     if (user) showGame();
 };
@@ -74,16 +70,34 @@ async function fetchLeaderboard() {
     }
 }
 
-// Simple Game Logic (Flappy Clone)
-let bird = { x: 50, y: 150, w: 20, h: 20, gravity: 0.6, velocity: 0 };
+// Game Constants (Easy Mode)
+let bird = { x: 50, y: 150, w: 25, h: 25, gravity: 0.4, velocity: 0 };
 let pipes = [];
 let frame = 0;
+const PIPE_GAP = 160; 
+
+function jump() {
+    if (gameState === 'playing') {
+        bird.velocity = -6.5;
+    } else if (gameState === 'menu') {
+        gameState = 'playing';
+        draw();
+    }
+}
 
 function draw() {
-    if (gameState !== 'playing') return;
-    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
+    if (gameState === 'menu') {
+        ctx.fillStyle = 'white';
+        ctx.font = '24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Click, Tap or Space', canvas.width / 2, canvas.height / 2 - 20);
+        ctx.fillStyle = '#22c55e';
+        ctx.fillText('START GAME', canvas.width / 2, canvas.height / 2 + 20);
+        return;
+    }
+
     // Bird
     bird.velocity += bird.gravity;
     bird.y += bird.velocity;
@@ -91,15 +105,14 @@ function draw() {
     ctx.fillRect(bird.x, bird.y, bird.w, bird.h);
 
     // Pipes
-    if (frame % 100 === 0) {
-        let gap = 120;
-        let pos = Math.random() * (canvas.height - gap - 100) + 50;
-        pipes.push({ x: canvas.width, top: pos, bottom: pos + gap });
+    if (frame % 120 === 0) {
+        let pos = Math.random() * (canvas.height - PIPE_GAP - 100) + 50;
+        pipes.push({ x: canvas.width, top: pos, bottom: pos + PIPE_GAP });
     }
 
     ctx.fillStyle = '#22c55e';
     pipes.forEach((p, i) => {
-        p.x -= 2;
+        p.x -= 1.8; // Slower pipes
         ctx.fillRect(p.x, 0, 40, p.top);
         ctx.fillRect(p.x, p.bottom, 40, canvas.height);
 
@@ -107,7 +120,10 @@ function draw() {
         if (bird.x < p.x + 40 && bird.x + bird.w > p.x && (bird.y < p.top || bird.y + bird.h > p.bottom)) {
             gameOver();
         }
-        if (p.x === bird.x) score++;
+        if (p.x < bird.x && !p.passed) {
+            score++;
+            p.passed = true;
+        }
         if (p.x < -40) pipes.splice(i, 1);
     });
 
@@ -115,10 +131,13 @@ function draw() {
 
     ctx.fillStyle = 'white';
     ctx.font = '20px Arial';
+    ctx.textAlign = 'left';
     ctx.fillText(`Score: ${score}`, 10, 25);
 
-    frame++;
-    requestAnimationFrame(draw);
+    if (gameState === 'playing') {
+        frame++;
+        requestAnimationFrame(draw);
+    }
 }
 
 async function gameOver() {
@@ -130,22 +149,31 @@ async function gameOver() {
     }
     alert(`Game Over! Score: ${score}`);
     resetGame();
+    draw(); // Draw menu
 }
 
 function resetGame() {
-    bird = { x: 50, y: 150, w: 20, h: 20, gravity: 0.6, velocity: 0 };
+    bird = { x: 50, y: 150, w: 25, h: 25, gravity: 0.4, velocity: 0 };
     pipes = [];
     score = 0;
     frame = 0;
 }
 
-startBtn.onclick = () => {
-    if (gameState === 'menu') {
-        gameState = 'playing';
-        draw();
-    }
-};
+// Initial draw
+draw();
 
+// Universal Input
 window.addEventListener('keydown', (e) => {
-    if (e.code === 'Space') bird.velocity = -8;
+    if (e.code === 'Space') {
+        e.preventDefault();
+        jump();
+    }
+});
+canvas.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    jump();
+});
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    jump();
 });

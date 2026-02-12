@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Supabase Quest - Vanilla JS</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        canvas { border: 2px solid #334155; border-radius: 8px; background: #0f172a; }
+        canvas { border: 2px solid #334155; border-radius: 8px; background: #0f172a; touch-action: none; cursor: pointer; }
     </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center p-8">
+<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center p-8 overflow-hidden">
     <h1 class="text-4xl font-bold mb-8">🎮 Supabase Quest</h1>
 
     <!-- Auth Section -->
@@ -25,9 +25,6 @@
     <div id="game-section" class="hidden w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
         <div class="bg-slate-800 p-6 rounded-lg flex flex-col items-center justify-center">
             <canvas id="gameCanvas" width="320" height="480"></canvas>
-            <div id="menu" class="mt-4">
-                <button id="start-btn" class="bg-green-600 hover:bg-green-700 px-8 py-2 rounded font-bold">START</button>
-            </div>
             <div class="mt-4 text-slate-400">High Score: <span id="high-score">0</span></div>
         </div>
 
