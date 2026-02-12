@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Quest - Vanilla JS</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        canvas { border: 2px solid #334155; border-radius: 8px; background: #0f172a; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center p-8">
+    <h1 class="text-4xl font-bold mb-8">🎮 Supabase Quest</h1>
+
+    <!-- Auth Section -->
+    <div id="auth-section" class="bg-slate-800 p-6 rounded-lg shadow-xl w-full max-w-md">
+        <h2 class="text-xl mb-4">Login / Sign Up</h2>
+        <input id="email" type="email" placeholder="Email" class="w-full p-2 mb-4 bg-slate-700 border border-slate-600 rounded">
+        <input id="password" type="password" placeholder="Password" class="w-full p-2 mb-4 bg-slate-700 border border-slate-600 rounded">
+        <button id="login-btn" class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded font-bold">Enter Game</button>
+    </div>
+
+    <!-- Game Section -->
+    <div id="game-section" class="hidden w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="bg-slate-800 p-6 rounded-lg flex flex-col items-center justify-center">
+            <canvas id="gameCanvas" width="320" height="480"></canvas>
+            <div id="menu" class="mt-4">
+                <button id="start-btn" class="bg-green-600 hover:bg-green-700 px-8 py-2 rounded font-bold">START</button>
+            </div>
+            <div class="mt-4 text-slate-400">High Score: <span id="high-score">0</span></div>
+        </div>
+
+        <div class="bg-slate-800 p-6 rounded-lg">
+            <h2 class="text-2xl font-bold mb-4">🏆 Leaderboard</h2>
+            <div id="leaderboard" class="space-y-2 text-sm text-slate-300"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
